@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TOTP 验证器</string>
+    <string name="hint_name">账号名 (如 GitHub)</string>
+    <string name="hint_secret">密钥 (Base32)</string>
+</resources>

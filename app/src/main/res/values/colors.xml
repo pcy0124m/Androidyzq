@@ -1,0 +1,8 @@
+<resources>
+    <color name="brand">#4f7cff</color>
+    <color name="brand2">#7b5cff</color>
+    <color name="bg">#0b1020</color>
+    <color name="card">#151b2e</color>
+    <color name="text">#e8ecf5</color>
+    <color name="muted">#8a93a8</color>
+</resources>
