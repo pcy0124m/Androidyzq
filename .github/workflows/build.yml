@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,17 +22,22 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Setup Android SDK
         run: |
+          SDK=$ANDROID_HOME
+          mkdir -p "$SDK/cmdline-tools"
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdtools.zip
+          unzip -q /tmp/cmdtools.zip -d "$SDK/cmdline-tools"
+          mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+          export PATH="$PATH:$SDK/cmdline-tools/latest/bin:$SDK/platform-tools"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
+        run: |
+          curl -sSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d "$HOME"
+          echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
@@ -50,4 +58,4 @@ jobs:
           TAG="v0.1.${GITHUB_RUN_NUMBER}"
           gh release create "$TAG" TOTPValidator-debug.apk \
             --title "TOTPValidator $TAG" \
-            --notes "自动构建的安卓 TOTP 验证器 debug APK（含相机扫码）"
+            --notes "安卓 TOTP 验证器 debug APK（含相机扫码，兼容微软/谷歌验证器）"
