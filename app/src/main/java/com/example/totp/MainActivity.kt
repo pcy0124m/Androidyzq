@@ -15,6 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.totp.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
                 cm.setPrimaryClip(ClipData.newPlainText("totp", code))
                 Toast.makeText(this, "已复制 $code", Toast.LENGTH_SHORT).show()
             })
+        binding.recycler.layoutManager = LinearLayoutManager(this)
         binding.recycler.adapter = adapter
 
         binding.fabManual.setOnClickListener { showManualDialog() }
