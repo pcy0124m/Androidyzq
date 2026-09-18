@@ -41,12 +41,23 @@ jobs:
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk TOTPValidator-debug.apk
 
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build.log
+            app/build/reports/
+            app/build/outputs/logs/
+
       - name: Upload artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: TOTPValidator-debug-apk
