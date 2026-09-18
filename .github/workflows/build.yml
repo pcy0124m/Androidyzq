@@ -41,10 +41,18 @@ jobs:
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace --info 2>&1 | tee build.log
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk TOTPValidator-debug.apk
+
+      - name: Dump build log on failure
+        if: failure()
+        run: |
+          echo "========== BUILD.LOG (last 400 lines) =========="
+          tail -n 400 build.log || cat build.log || true
 
       - name: Upload build logs on failure
         if: failure()
@@ -64,6 +72,7 @@ jobs:
           path: TOTPValidator-debug.apk
 
       - name: Publish GitHub Release
+        if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
