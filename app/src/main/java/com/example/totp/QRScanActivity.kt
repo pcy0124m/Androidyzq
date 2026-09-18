@@ -10,7 +10,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.example.totp.databinding.ActivityScanBinding
+import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
+import com.google.zxing.DecodeHintType
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
@@ -19,7 +21,14 @@ import java.util.concurrent.Executors
 class QRScanActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityScanBinding
-    private val reader = MultiFormatReader()
+    private val reader = MultiFormatReader().apply {
+        setHints(
+            mapOf(
+                DecodeHintType.TRY_HARDER to true,
+                DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE)
+            )
+        )
+    }
     private var processed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
