@@ -48,7 +48,7 @@ class QRScanActivity : AppCompatActivity() {
                 preview,
                 analysis
             )
-        }, ContextCompat.mainExecutor(this))
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun analyze(proxy: ImageProxy) {
