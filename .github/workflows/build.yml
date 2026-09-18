@@ -48,6 +48,9 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk TOTPValidator-debug.apk
 
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk TOTPValidator-debug.apk
+
       - name: Dump build log on failure
         if: failure()
         run: |
@@ -63,6 +66,19 @@ jobs:
             build.log
             app/build/reports/
             app/build/outputs/logs/
+
+      - name: Create issue with build log on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LOG="$(tail -c 5000 build.log | sed 's/\r//g')"
+          # Escape for JSON
+          BODY=$(printf '%s' "$LOG" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          gh issue create \
+            --title "Build failed on run ${GITHUB_RUN_NUMBER}" \
+            --body "## Build log (tail)\n\n\`\`\`\n${BODY}\n\`\`\`" \
+            --label "build"
 
       - name: Upload artifact
         if: success()
