@@ -56,22 +56,39 @@ class QRScanActivity : AppCompatActivity() {
             proxy.close()
             return
         }
-        val buffer = proxy.planes[0].buffer
-        val data = ByteArray(buffer.remaining())
-        buffer.get(data)
+
+        val rotation = proxy.imageInfo.rotationDegrees
+        val plane = proxy.planes[0]
+        val rowStride = plane.rowStride
+        val pixelStride = plane.pixelStride
         val width = proxy.width
         val height = proxy.height
+
+        val yData = ByteArray(plane.buffer.remaining())
+        plane.buffer.get(yData)
+
+        // 去掉每行 rowStride 对齐产生的 padding，得到紧密排列的亮度数组
+        val tight = ByteArray(width * height)
+        var src = 0
+        var dst = 0
+        for (row in 0 until height) {
+            for (col in 0 until width) {
+                tight[dst++] = yData[src + col * pixelStride]
+            }
+            src += rowStride
+        }
         proxy.close()
 
+        // 按相机旋转角把画面转正，否则竖屏时 ZXing 解不出码
+        val (lum, w, h) = rotateLuminance(tight, width, height, rotation)
+
         try {
-            val source = PlanarYUVLuminanceSource(
-                data, width, height, 0, 0, width, height, false
-            )
+            val source = PlanarYUVLuminanceSource(lum, w, h, 0, 0, w, h, false)
             val bitmap = BinaryBitmap(HybridBinarizer(source))
             val result = reader.decode(bitmap)
             processed = true
+            val text = result.text ?: ""
             runOnUiThread {
-                val text = result.text ?: ""
                 val (name, secret) = parse(text)
                 if (secret.isNotBlank()) {
                     AccountStore(this).add(name, secret)
@@ -82,7 +99,39 @@ class QRScanActivity : AppCompatActivity() {
                 finish()
             }
         } catch (e: Exception) {
-            // no QR found in this frame, keep scanning
+            // 这一帧没扫到，继续等下一帧
+        }
+    }
+
+    private fun rotateLuminance(
+        src: ByteArray,
+        w: Int,
+        h: Int,
+        rotation: Int
+    ): Triple<ByteArray, Int, Int> {
+        return when (rotation) {
+            90 -> {
+                val out = ByteArray(w * h)
+                for (y in 0 until h) for (x in 0 until w) {
+                    out[x * h + (h - 1 - y)] = src[y * w + x]
+                }
+                Triple(out, h, w)
+            }
+            180 -> {
+                val out = ByteArray(w * h)
+                for (y in 0 until h) for (x in 0 until w) {
+                    out[(h - 1 - y) * w + (w - 1 - x)] = src[y * w + x]
+                }
+                Triple(out, w, h)
+            }
+            270 -> {
+                val out = ByteArray(w * h)
+                for (y in 0 until h) for (x in 0 until w) {
+                    out[(w - 1 - x) * h + y] = src[y * w + x]
+                }
+                Triple(out, h, w)
+            }
+            else -> Triple(src, w, h)
         }
     }
 
@@ -95,7 +144,6 @@ class QRScanActivity : AppCompatActivity() {
             val name = if (!issuer.isNullOrBlank()) "$issuer:$label" else label
             return Pair(if (name.isBlank()) "账号" else name, secret)
         }
-        // 直接是 Base32 密钥
         return Pair("账号", text.trim())
     }
 }
